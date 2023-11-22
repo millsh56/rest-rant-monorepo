@@ -1,27 +1,42 @@
-const router = require('express').Router()
-const { response } = require('express');
-const db = require("../models")
-const bcrypt = require('bcrypt')
+const router = require("express").Router();
+const { response } = require("express");
+const db = require("../models");
+const bcrypt = require("bcrypt");
 
-const {User} = db
+const { User } = db;
 
-router.post('/', async (req, res) => {
-    console.log('IN HERE')
-    const { email, password } = req.body;
-    let user = await User.findOne({
-        where: {
-            email
-        }
+router.post("/", async (req, res) => {
+  console.log("IN HERE");
+  const { email, password } = req.body;
+  let user = await User.findOne({
+    where: {
+      email,
+    },
+  });
+  if (!user || !(await bcrypt.compare(password, user.passwordDigest))) {
+    req.status(403).json({
+      message: "Could not log in the submitted information",
     });
-    if (!user || !await bcrypt.compare(password, passwordDigest)) {
-        req.status(403).json({
-            message: 'Could not log in the submitted information'
-        })
-    } else {
-        res.status(200).json({ user });
-    }
-    const data = await response.json();
-    console.log(data)
+  } else {
+    req.session.userId = user.userId
+    res.json({user})
+  }
+  const data = await response.json();
+  console.log(data);
 });
 
-module.exports = router
+
+router.get('/profile', async (req, res) => {
+  try {
+    let user = await User.findOne({
+      where: {
+        userId: req.session.userId,
+      },
+    });
+    res.json(user);
+  } catch (e) {
+    res.json(null);
+  }
+});
+
+module.exports = router;
